@@ -1,0 +1,193 @@
+ 
+   
+/* ---------------Seccion de declaraciones preliminares--------------------*/
+package ejemplocup;
+
+/* Import the class java_cup.runtime.*  */
+import java_cup.runtime.*;
+   
+/* Codigo del parser, se copia integramente a la clase final.
+    Agregamos el manejo de errores. */
+parser code {:
+    
+    /* Reporte de error encontrado. */
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Error");
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+            if (s.left >= 0) {                
+                m.append(" in line "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", column "+(s.right+1));
+            }
+        }
+        m.append(" : "+message);
+        System.err.println(m);
+    }
+   
+    /* Cuando se encuentra un error de donde el sistema no puede
+        recuperarse, se lanza un error fatal. Se despliega el mensaje
+        de error y se finaliza la ejecucion. */
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+:};
+   
+
+   
+/* ------------Declaracion de simbolos terminales y no terminales---------- */
+   
+/* Terminales (tokens obtenidos por el analizador lexico).  
+
+   Terminales que no tienen un valor son listados primero, los terminales que
+   tienen un valor como los enteros son listados en la segunda o demas lineas. */
+terminal           SEMI, OP_SUMA, OP_RESTA, OP_MULT, IZQ_PAREN, DER_PAREN,
+                      IMPRIMIR;
+terminal Integer   ENTERO;
+   
+/* No terminales usados en la seccion gramatical. 
+
+   Primero se lista los no terminales que tienen un valor Object y despues
+   se lista los no terminales que tienen un entero. Un Object se refiere a que
+   no tienen tipo, pudiendo ser entero o String. */
+non terminal Object     expr_list, expr_part, expr_imprimir;
+non terminal Integer    expr, factor, term;
+   
+
+/* -------------Precedence and Associatively of Terminals Section----------- */
+   
+/*
+  Precedence of non terminals could be defined here.  If you do define
+  precedence here you won't need to worry about precedence in the
+  Grammar Section, i.e. that TIMES should have a higher precedence
+  than PLUS.
+  
+  The precedence defined here would look something like this where the
+  lower line always will have higher precedence than the line before it.
+   
+  precedence left PLUS, MINUS; 
+  precedence left TIMES, DIVIDE; 
+*/
+
+
+/* ------------------- Seccion de la gramatica ------------------------ */
+   
+/* The grammar for our parser.
+   
+   expr_list ::=   expr_list expr_part
+                 | expr_part
+   expr_part ::=   expr SEMI
+   expr      ::=   expr PLUS factor
+                 | expr MINUS factor
+                 | factor
+   factor    ::=   factor TIMES term
+                 | factor DIVIDE term
+                 | term
+   term     ::=    LPAREN expr RPAREN
+                 | NUMBER
+                 | ID     
+*/
+   
+/* 'expr_list' is the start of our grammar.  It can lead to another
+   'expr_list' followed by an 'expr_part' or it can just lead to an
+   'expr_part'.  The lhs of the non terminals 'expr_list' and
+   'expr_part' that are in the rhs side of the production below need
+   to be found.  Then the rhs sides of those non terminals need to be
+   followed in a similar manner, i.e. if there are any non terminals
+   in the rhs of those productions then the productions with those non
+   terminals need to be found and those rhs's followed.  This process
+   keeps continuing until only terminals are found in the rhs of a
+   production.  Then we can work our way back up the grammar bringing
+   any values that might have been assigned from a terminal. */
+   
+   expr_list ::= expr_list expr_part
+                 |
+                 expr_part;
+   
+/* 'expr_part' is an 'expr' followed by the terminal 'SEMI'.  The ':e'
+   after the non terminal 'expr' is a label an is used to access the
+   value of 'expr' which will be an integer.  The action for the
+   production lies between {: and :}.  This action will print out the
+   line " = + e" where e is the value of 'expr'.  Before the action
+   takes places we need to go deeper into the grammar since 'expr' is
+   a non terminal.  Whenever a non terminal is encountered on the rhs
+   of a production we need to find the rhs of that non terminal until
+   there are no more non terminals in the rhs.  So when we finish
+   going through the grammar and don't encounter any more non
+   terminals in the rhs productions will return until we get back to
+   'expr' and at that point 'expr' will contain an integer value. */
+   
+   expr_part ::= expr:e
+                 {: System.out.println(" = " + e); :}
+                 SEMI
+                 |
+                 expr_imprimir SEMI
+                 ;
+   
+/* 'expr' can lead to 'expr PLUS factor', 'expr MINUS factor', or
+   'factor'.  The 'TIMES' and 'DIVIDE' productions are not at this
+   level.  They are at a lower level in the grammar which in affect
+   makes them have higher precedence.  Actions for the rhs of the non
+   terminal 'expr' return a value to 'expr'.  This value that is
+   created is an integer and gets stored in 'RESULT' in the action.
+   RESULT is the label that is assigned automatically to the rhs, in
+   this case 'expr'.  If the rhs is just 'factor' then 'f' refers to
+   the non terminal 'factor'.  The value of 'f' is retrieved with the
+   function 'intValue()' and will be stored in 'RESULT'.  In the other
+   two cases 'f' and 'e' refers to the non terminals 'factor' and
+   'expr' respectively with a terminal between them, either 'PLUS' or
+   'MINUS'.  The value of each is retrieved with the same function
+   'intValue'.  The values will be added or subtracted and then the
+   new integer will be stored in 'RESULT'.*/
+   
+   expr      ::= expr:e OP_SUMA factor:f {:
+                    RESULT = new Integer(e.intValue() + f.intValue());
+                  :}
+                  |
+                  expr:e OP_RESTA factor:f {:
+                    RESULT = new Integer(e.intValue() - f.intValue());
+                  :}
+                  |
+                  factor:f
+                  {: 
+                    RESULT = new Integer(f.intValue());
+                  :}
+                  ;
+   
+    factor    ::= factor:f OP_MULT term:t {: 
+                      RESULT = new Integer(f.intValue() * t.intValue()); 
+                  :} 
+                  |
+                  term:t {: 
+                    RESULT = new Integer(t.intValue()); 
+                  :}
+                  ;
+
+
+/* 'term' can lead to 'LPAREN expr RPAREN', 'NUMBER', or 'ID'.  The
+   first production has the non terminal 'expr' in it so the
+   production with its lhs side needs to be found and followed.  The
+   next rhs has no non terminals.  So the grammar ends here and can go
+   back up.  When it goes back up it will bring the value that was
+   retrieved when the scanner encounter the token 'NUMBER'.  'RESULT'
+   is assigned 'n', which refers to 'NUMBER', as the action for this
+   production.  The same action occurs for 'ID', except the 'i' is
+   used to refer to 'ID'.  'ID' is also the only thing on the rhs of
+   the production.  And since 'ID' is a terminal the grammar will end
+   here and go back up. */
+   
+   term      ::=  IZQ_PAREN expr:e DER_PAREN {:
+                    RESULT = e;
+                  :}
+                  |
+                  ENTERO:n
+                  {: 
+                    RESULT = n; 
+                  :}
+                  ;
+
+  expr_imprimir   ::=  IMPRIMIR expr:e {:
+                          System.out.println(e);
+                       :}
+                       ;

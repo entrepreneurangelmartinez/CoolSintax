@@ -1,0 +1,192 @@
+ 
+   
+/* ---------------Seccion de declaraciones preliminares--------------------*/
+package ejemplocup;
+
+/* Import the class java_cup.runtime.*  */
+import java_cup.runtime.*;
+import java.io.FileReader;
+   
+/* Codigo del parser, se copia integramente a la clase final.
+    Agregamos el manejo de errores. */
+parser code {:
+    
+    /* Reporte de error encontrado. */
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Error");
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+            if (s.left >= 0) {                
+                m.append(" in line "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", column "+(s.right+1));
+            }
+        }
+        m.append(" : "+message);
+        System.err.println(m);
+    }
+   
+    /* Cuando se encuentra un error de donde el sistema no puede
+        recuperarse, se lanza un error fatal. Se despliega el mensaje
+        de error y se finaliza la ejecucion. */
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+
+    /* Metodo main para garantizar la ejecucion del analizador
+       lexico y sintactico, ademas que se pase como parametro la tabla
+       de simbolos correspondiente. */
+    public static void main(String[] args){
+        try {
+            AnalizadorSintactico asin = new AnalizadorSintactico(
+                    new AnalizadorLexico( new FileReader(args[0])));
+            Object result = asin.parse().value;
+            System.out.println("\n*** Resultados finales ***");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+:};
+   
+
+   
+/* ------------Declaracion de simbolos terminales y no terminales---------- */
+   
+/* Terminales (tokens obtenidos por el analizador lexico).  
+
+   Terminales que no tienen un valor son listados primero, los terminales que
+   tienen un valor como los enteros son listados en la segunda o demas lineas. */
+terminal           SEMI, OP_SUMA, OP_RESTA, OP_MULT, OP_DIV, PARENIZQ, PARENDER, TIPO_INT, 
+TIPO_BOOL, TIPO_STRING, SELF_TYPE, CLASS, ELSE, IN, FI, BOOLEAN_FALSE, ISVOID,
+INHERITS,LET,LOOP,POOL,THEN,WHILE,CASE,ESAC,NEW,OF,NOT,BOOLEAN_TRUE,OP_SUMAIGUAL,OP_IGUAL, OP_MENORQ,
+OP_MENORIGUALQ,LEFT_ALLOC,CBLEFT,CBRIGHT,RIGHT_ALLOC,OP_POW,COMA,ARROBA,NEGATION,TWO_POINTS,POINT;
+terminal Integer   ENTERO;
+terminal String CADENA;
+terminal String IDENTIFICADOR;
+   
+/* No terminales usados en la seccion gramatical. 
+
+   Primero se lista los no terminales que tienen un valor Object y despues
+   se lista los no terminales que tienen un entero. Un Object se refiere a que
+   no tienen tipo, pudiendo ser entero o String. */
+non terminal Object     program,expr_list, expr_part, classdecl,class1,class2,class3,type,classdecl2,chingada;
+non terminal Integer    expr, factor, termino;
+
+
+
+/* -------------Seccion de predencia y asociacion de los terminales----------- */
+   
+/*
+  Precedencia de los no terminales, no sirve con simbolos terminales.
+  Por eso no la usamos. Además indica si se asocia a izquierda o derecha.
+*/
+  /*precedence left OP_SUMA, OP_RESTA; 
+  precedence left OP_MULT;*/
+
+
+/* ------------------- Seccion de la gramatica ------------------------ */
+   
+/* La gramatica de nuestro analizador.
+   
+   expr_list ::=   expr_list expr_part
+                 | expr_part
+   expr_part ::=   expr SEMI
+   expr      ::=   expr PLUS factor
+                 | expr MINUS factor
+                 | factor
+   factor    ::=   factor TIMES term
+                 | factor DIVIDE term
+                 | term
+   term     ::=    LPAREN expr RPAREN
+                 | NUMBER
+                 | ID     
+*/
+   
+/* 'expr_list' es la raiz de la gramatica. Una 'expr_list' puede ser una 'expr_list'
+   seguida de una expr_part, o puede ser una expr_part.
+   Un terminal o no terminal se define <termino> ::= termino1 termino2 ... terminoN.;
+   donde termino puede ser terminal o no terminal, solo se permite un simbolo a la
+   izquierda. La | sirve para indicar que es una produccion u otra.
+   Debemos pasar de simbolos no terminales a simbolos terminales. Una gramatica que no
+   termina en simbolos terminales se dice que no reduce, y por lo tanto nunca se finaliza
+   su procesado.
+*/
+   program ::= program classdecl
+              |
+              classdecl;            
+   classdecl ::= CLASS type chingada;
+   chingada ::= class1 | class2;
+   type ::= TIPO_STRING
+   | TIPO_INT
+   | TIPO_BOOL;
+   class1 ::= INHERITS type CBLEFT  CBRIGHT;
+   class2 ::= CBLEFT  CBRIGHT;
+   //feauture ::= 
+   /*type ::= TIPO_STRING
+   | TIPO_INT
+   | TIPO_BOOL;
+   class1 ::= classdecl INHERITS type ;
+   class2 ::= class1 CBLEFT;
+   
+   
+*/
+   /* expr_list ::= expr_list expr_part
+                  |
+                  expr_part
+                  ;*/
+/* 'expr_part' se compone de una expr seguida de SEMI, o de una asign seguida de SEMI.
+   asign:a esta estableciendo que a representa al objeto asociado a asign, entre {: :}
+   se coloca el sodigo en java para las acciones a tomar al cumplirse una produccion.
+*/
+   
+  /* expr_part ::= expr:e
+                  {:
+                    System.out.println(" = " + e); 
+                  :} 
+                  SEMI
+                 ;
+  */                
+/* 'expr' puede ser una expresion que inicia por numero entero op_suma expr,
+  de esa forma se realiza una suma. Tambien puede ser un numero entero, con esto
+  se devuelve el valor del entero. En RESULT se almacena el valor de las acciones,
+  y se pasa al siguiente nivel de la gramatica.
+*/              
+
+   /*expr      ::=  expr:e OP_SUMA factor:f
+                  {:
+                    RESULT = new Integer(e.intValue() + f.intValue());
+                  :}
+                  |
+                  expr:e OP_RESTA factor:f
+                  {:
+                    RESULT = new Integer(e.intValue() - f.intValue());
+                  :}
+                  |
+                  factor:n
+                  {:
+                    RESULT = n; 
+                  :}
+                  ;
+
+factor        ::=  factor:f OP_MULT termino:e
+                  {:
+                    RESULT = new Integer(f.intValue() * e.intValue());
+                  :}
+                  |
+                  termino:t
+                  {:
+                    RESULT = t;
+                  :}
+                  ;
+
+termino       ::=  PARENIZQ expr:e PARENDER
+                  {:
+                    RESULT = e;
+                  :}
+                  |
+                  ENTERO:e
+                  {:
+                    RESULT = e;
+                  :}
+                  ; */
