@@ -1,0 +1,5 @@
+class Int inherits Bool class Bool class String
+class Bool
+class String inherits String
+class String inherits String
+inherits String

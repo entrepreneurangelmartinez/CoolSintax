@@ -41,6 +41,7 @@ parser code {:
         try {
             AnalizadorSintactico asin = new AnalizadorSintactico(
                     new AnalizadorLexico( new FileReader(args[0])));
+            //
             Object result = asin.parse().value;
             System.out.println("\n*** Resultados finales ***");
         } catch (Exception ex) {
@@ -57,10 +58,10 @@ parser code {:
 
    Terminales que no tienen un valor son listados primero, los terminales que
    tienen un valor como los enteros son listados en la segunda o demas lineas. */
-terminal           SEMI, OP_SUMA, OP_RESTA, OP_MULT, OP_DIV, PARENIZQ, PARENDER, TIPO_INT, 
+terminal           COMENTARIOUNO,COMENTARIODOS,SEMI, OP_SUMA, OP_RESTA, OP_MULT, OP_DIV, PARENIZQ, PARENDER, TIPO_INT, 
 TIPO_BOOL, TIPO_STRING, SELF_TYPE, CLASS, ELSE, IN, FI, BOOLEAN_FALSE, ISVOID,
 INHERITS,LET,LOOP,POOL,THEN,WHILE,CASE,ESAC,NEW,OF,NOT,BOOLEAN_TRUE,OP_SUMAIGUAL,OP_IGUAL, OP_MENORQ,
-OP_MENORIGUALQ,LEFT_ALLOC,CBLEFT,CBRIGHT,RIGHT_ALLOC,OP_POW,COMA,ARROBA,NEGATION,TWO_POINTS,POINT;
+OP_MENORIGUALQ,LEFT_ALLOC,CBLEFT,CBRIGHT,RIGHT_ALLOC,OP_POW,COMA,ARROBA,NEGATION,TWO_POINTS,POINT,ESPACIO,IF,TIPO_IO,TIPO_OBJECT;
 terminal Integer   ENTERO;
 terminal String CADENA;
 terminal String IDENTIFICADOR;
@@ -70,8 +71,9 @@ terminal String IDENTIFICADOR;
    Primero se lista los no terminales que tienen un valor Object y despues
    se lista los no terminales que tienen un entero. Un Object se refiere a que
    no tienen tipo, pudiendo ser entero o String. */
-non terminal Object     program,expr_list, expr_part, classdecl,class1,class2,class3,type,classdecl2,chingada;
-non terminal Integer    expr, factor, termino;
+non terminal Object     program,expr_list, expr_part, classdecl,class1,class2,class3,type,classdecl2,chingada,
+feauture,feauture2, formalpica, formalpica2, formalapicaceroomuchos, nothing, op_logicos;
+non terminal Integer expr, factor, termino;
 
 
 
@@ -119,10 +121,92 @@ non terminal Integer    expr, factor, termino;
    chingada ::= class1 | class2;
    type ::= TIPO_STRING
    | TIPO_INT
-   | TIPO_BOOL;
-   class1 ::= INHERITS type CBLEFT  CBRIGHT;
-   class2 ::= CBLEFT  CBRIGHT;
-   //feauture ::= 
+   | TIPO_BOOL
+   | TIPO_OBJECT
+   | TIPO_IO
+   | SELF_TYPE;
+   class1 ::= INHERITS type class2 SEMI;
+   class2 ::= CBLEFT  CBRIGHT 
+              |
+              CBLEFT feauture SEMI CBRIGHT SEMI;
+   feauture ::= feauture feauture2
+                |
+                feauture2 
+                |
+                 ESPACIO;
+   feauture2::= IDENTIFICADOR PARENIZQ PARENDER TWO_POINTS type CBLEFT expr CBRIGHT
+   |
+                IDENTIFICADOR PARENIZQ formalpica PARENDER SEMI TWO_POINTS type CBLEFT expr CBRIGHT
+                |
+                IDENTIFICADOR PARENIZQ formalpica formalapicaceroomuchos PARENDER SEMI TWO_POINTS type CBLEFT expr CBRIGHT
+                | 
+                IDENTIFICADOR TWO_POINTS type LEFT_ALLOC expr
+                | IDENTIFICADOR TWO_POINTS  type;
+   formalpica ::= IDENTIFICADOR TWO_POINTS type
+                | ESPACIO;
+   formalapicaceroomuchos::= formalapicaceroomuchos formalpica2 
+                | 
+                formalpica2 
+                | 
+                ESPACIO;
+   formalpica2 ::= COMA IDENTIFICADOR TWO_POINTS type;
+
+   expr      ::=  IDENTIFICADOR LEFT_ALLOC op_logicos
+                  |
+                  expr ARROBA type POINT IDENTIFICADOR PARENIZQ expr COMA expr PARENDER   
+                  |
+                  IDENTIFICADOR PARENIZQ expr COMA expr PARENDER
+                  |
+                  IDENTIFICADOR PARENIZQ expr  PARENDER
+                  |
+                  IDENTIFICADOR PARENIZQ PARENDER
+                  |
+                  IF expr THEN expr ELSE expr FI SEMI
+                  |
+                  NEW type
+                  |
+                  expr OP_MENORIGUALQ op_logicos
+                  |
+                  expr OP_MENORQ op_logicos
+                  |
+                  expr OP_IGUAL op_logicos
+                  |
+                  expr POINT op_logicos
+                  |
+                   expr NEGATION op_logicos
+                  |
+                   op_logicos;
+  op_logicos ::=  op_logicos OP_SUMA factor
+                  |
+                  op_logicos OP_RESTA factor
+                  |
+                  factor
+                  ;
+factor        ::=  factor OP_MULT termino
+                  | 
+                  factor OP_DIV termino
+                  |
+                  termino
+                  ;
+termino       ::= 
+                  PARENIZQ expr PARENDER
+                  |
+                  IDENTIFICADOR
+                  |
+                  ENTERO
+                  |
+                  CADENA
+                  |
+                  BOOLEAN_TRUE
+                  |
+                  BOOLEAN_FALSE
+                  |
+                  ESPACIO
+
+                  ; 
+   //feauture ::=  feauture  feauture2 | feauture2;
+   //feauture2 ::=IDENTIFICADOR PARENIZQ formal PARENDER;
+   //formal ::= IDENTIFICADOR;
    /*type ::= TIPO_STRING
    | TIPO_INT
    | TIPO_BOOL;

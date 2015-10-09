@@ -31,6 +31,11 @@ public class EjemploCUP {
         java.util.Scanner in = new Scanner(System.in);
         int valor = 0;
         do {
+            System.out.println("Analizador Sintáctico \"Equipo Noveno\"\n"+
+                    "Angel Jesús Martínez Frías\n"+
+                    "Miguel Alejandro Pasos Carballo\n"+
+                    "Iván Josué Canto Cauich\n"+
+                    "Lizette Aguilar\n\n");
             System.out.println("Elija una opcion: ");
             System.out.println("1) Generar");
             System.out.println("2) Ejecutar");

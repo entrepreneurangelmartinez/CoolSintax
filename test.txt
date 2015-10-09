@@ -1,2 +1,9 @@
-class Int inherits Bool { } 
-class Bool { }
+class String {
+copy() : SELF_TYPE { self };
+};
+class String inherits Bool { };
+class Bool {
+main() : Bool { if(j<10) then true else false fi; 
+
+};
+}; -a-

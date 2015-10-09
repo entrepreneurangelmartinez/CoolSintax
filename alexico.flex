@@ -71,8 +71,9 @@ EXP_DIGITO=[0-9]
 EXP_ALPHANUMERIC={EXP_ALPHA}|{EXP_DIGITO}
 ENTERO=({EXP_DIGITO})+
 IDENTIFICADOR={EXP_ALPHA}({EXP_ALPHANUMERIC})*
-ESPACIO=" "
+
 SALTO=\n|\r|\r\n
+ESPACIO={SALTO} | [ \t\f]
 CADENA="\""({ESPACIO}|{EXP_ALPHANUMERIC})*"\""
 COMENTARIOUNO="\-"({ESPACIO}|{EXP_ALPHANUMERIC})*"\-"
 COMENTARIODOS="\*"({ESPACIO}|{EXP_ALPHANUMERIC})*"\*"
@@ -95,10 +96,13 @@ COMENTARIODOS="\*"({ESPACIO}|{EXP_ALPHANUMERIC})*"\*"
     "Int"       { System.out.print(" Int "); return symbol(sym.TIPO_INT); }
     "Bool"      { System.out.print(" Bool "); return symbol(sym.TIPO_BOOL); }
     "String"    { System.out.print(" String "); return symbol(sym.TIPO_STRING); }
-    "SELFTYPE"  { System.out.print(" SELFTYPE "); return symbol(sym.SELF_TYPE); }
+    "SELF_TYPE" { System.out.print(" SELF_TYPE "); return symbol(sym.SELF_TYPE); }
+    "IO"        { System.out.print(" IO "); return symbol(sym.TIPO_IO); }
+    "Object"    { System.out.print(" TIPO_OBJECT "); return symbol(sym.TIPO_OBJECT); }
     "class"     { System.out.print(" class "); return symbol(sym.CLASS); }
     "else"      { System.out.print(" else "); return symbol(sym.ELSE); }
     "false"     { System.out.print(" false "); return symbol(sym.BOOLEAN_FALSE); }
+    "if"        { System.out.print(" if "); return symbol(sym.IF); }
     "fi"        { System.out.print(" fi "); return symbol(sym.FI); }
     "in"        { System.out.print(" in "); return symbol(sym.IN); }
     "inherits"  { System.out.print(" inherits "); return symbol(sym.INHERITS); }
@@ -140,12 +144,21 @@ COMENTARIODOS="\*"({ESPACIO}|{EXP_ALPHANUMERIC})*"\*"
         que representa un entero y el valor que se obtuvo de la cadena yytext
         al convertirla a entero. yytext es el token encontrado. */
     {ENTERO}      {   System.out.print(yytext()); 
-                      return symbol(sym.ENTERO, new Integer(yytext())); }
+                      return symbol(sym.ENTERO, new String(yytext())); }
+    {IDENTIFICADOR}      {   System.out.print(yytext()); 
+                      return symbol(sym.IDENTIFICADOR, new String(yytext())); }
+
     {CADENA}      {   System.out.print(yytext()); 
                       return symbol(sym.CADENA, new String(yytext())); }
     /* No hace nada si encuentra el espacio en blanco */
     {ESPACIO}       { /* ignora el espacio */ } 
+{SALTO}       { System.out.println("\n"); 
+                      return symbol(sym.SALTO, new String(yytext())); }
 }
+{COMENTARIOUNO}       { }
+
+{COMENTARIODOS}       {  }
+
 
 
 /* Si el token contenido en la entrada no coincide con ninguna regla
